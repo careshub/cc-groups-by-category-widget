@@ -68,7 +68,9 @@ class CC_Groups_by_Category_Widget extends WP_Widget {
 			'meta_query'	=> array(
 					                array(
 					                	'key'     => 'cc_group_is_featured',
-						                'compare' => 'EXISTS'
+						                'value'   => 1,
+						                'type'    => 'numeric',
+						                'compare' => '='
 						                ),
 									),
 		);
@@ -82,30 +84,36 @@ class CC_Groups_by_Category_Widget extends WP_Widget {
                 'compare' => '='
             );
         }
+        // Build an array to exclude groups from our follow-up non-featured loop.
         $exclude_groups = array();
+        // We'll need to keep track of whether either loop is successful.
+        $showed_a_group = false;
 		?>
-
-		<?php if ( bp_has_groups( $featured_group_args ) ) : ?>
 			<ul id="groups-list" class="item-list">
-				<?php while ( bp_groups() ) : bp_the_group(); ?>
-					<li <?php bp_group_class(); ?>>
-						<div class="item-avatar">
-							<a href="<?php bp_group_permalink() ?>" title="<?php bp_group_name() ?>"><?php bp_group_avatar_thumb() ?></a>
-						</div>
-
-						<div class="item">
-							<div class="item-title"><a href="<?php bp_group_permalink() ?>" title="<?php bp_group_name() ?>"><?php bp_group_name() ?></a></div>
-							<div class="item-meta">
-								<span class="activity">
-								<?php printf( __( 'active %s', 'buddypress' ), bp_get_group_last_active() ); ?>
-								</span>
+			<?php 
+				if ( bp_has_groups( $featured_group_args ) ) : ?>
+					<?php while ( bp_groups() ) : bp_the_group(); ?>
+						<li <?php bp_group_class(); ?>>
+							<div class="item-avatar">
+								<a href="<?php bp_group_permalink() ?>" title="<?php bp_group_name() ?>"><?php bp_group_avatar_thumb() ?></a>
 							</div>
-						</div>
-					</li>
 
-				<?php
-				$exclude_groups[] = bp_get_group_id();
-				endwhile;
+							<div class="item">
+								<div class="item-title"><a href="<?php bp_group_permalink() ?>" title="<?php bp_group_name() ?>"><?php bp_group_name() ?></a></div>
+								<div class="item-meta">
+									<span class="activity">
+									<?php printf( __( 'active %s', 'buddypress' ), bp_get_group_last_active() ); ?>
+									</span>
+								</div>
+							</div>
+						</li>
+
+					<?php
+					$exclude_groups[] = bp_get_group_id();
+					$showed_a_group = true;
+					endwhile;
+				endif; //if ( bp_has_groups( $featured_group_args ) )
+
 				// Next we show non-featured groups in this term.
 				if ( $term_id ) :
 					$category_group_args = array(
@@ -140,21 +148,24 @@ class CC_Groups_by_Category_Widget extends WP_Widget {
 								</div>
 							</li>
 
-						<?php endwhile;
+							<?php 
+							$showed_a_group = true;
+						endwhile;
 					endif; // if ( bp_has_groups( $category_group_args ) )
 				endif; // if ( $term_id ) :
 				?>
-			</ul>
 			<?php wp_nonce_field( 'groups_widget_groups_list', '_wpnonce-groups' ); ?>
 			<input type="hidden" name="groups_widget_max" id="groups_widget_max" value="<?php echo esc_attr( $instance['max_groups'] ); ?>" />
 
-		<?php else: ?>
+			<?php if ( $showed_a_group == false ) : ?>
 
-			<div class="widget-error">
-				<?php _e('No matching groups found.', 'buddypress') ?>
-			</div>
+					<li class="widget-error">
+						<?php _e('No matching groups found.', 'buddypress') ?>
+					</li>
 
-		<?php endif; ?>
+			<?php endif; ?>
+			</ul>
+
 
 		<?php echo $after_widget; ?>
 	<?php
